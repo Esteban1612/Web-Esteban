@@ -82,11 +82,18 @@
             }
         }
 
+        /* Evita mostrar los textos de ejemplo mientras cargan los guardados */
+        .editable { transition: opacity .4s ease; }
+        html.cargando .editable { opacity: 0; }
         /* Modo edición */
         .editable.editing { outline: 1px dashed #06b6d4; outline-offset: 3px; background: rgba(6,182,212,.07); border-radius: 4px; cursor: text; }
         .editable.editing:focus { outline: 2px solid #06b6d4; background: rgba(6,182,212,.12); }
         @media print { #editBar, #loginModal { display: none !important; } }
     </style>
+<script>
+        document.documentElement.classList.add('cargando');
+        setTimeout(function () { document.documentElement.classList.remove('cargando'); }, 3500);
+    </script>
 </head>
 <body class="bg-slateBg text-gray-300 font-sans min-h-screen selection:bg-accentCyan selection:text-black">
 <!-- Navbar -->
@@ -616,7 +623,8 @@ Me especializo en el desarrollo moderno de software utilizando tecnologías como
         });
 
         // --- Firebase ---
-        if (!configured) setPlaceholder(true);
+        const revealTexts = () => document.documentElement.classList.remove('cargando');
+        if (!configured) { setPlaceholder(true); revealTexts(); }
         if (configured) {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -633,7 +641,8 @@ Me especializo en el desarrollo moderno de software utilizando tecnologías como
                 } else {
                     setPlaceholder(true);
                 }
-            }).catch(err => { console.warn('No se pudieron cargar los textos:', err); setPlaceholder(true); });
+            }).catch(err => { console.warn('No se pudieron cargar los textos:', err); setPlaceholder(true); })
+              .finally(revealTexts);
 
             onAuthStateChanged(auth, (user) => { owner = !!user; refreshUI(); });
         }
