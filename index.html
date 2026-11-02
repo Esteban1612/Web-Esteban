@@ -134,7 +134,10 @@
 <div class="flex flex-col items-center">
 <div class="relative group">
 <div class="w-36 h-36 sm:w-40 sm:h-40 rounded-xl overflow-hidden border-2 border-slateBorder bg-slateCard relative shadow-lg">
-<img alt="Foto de Esteban Vallejos" class="w-full h-full object-cover" id="avatarImage" onerror="this.src='https://placehold.co/400x400/111827/06b6d4?text=Esteban+Vallejos'" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&amp;fit=crop&amp;q=80&amp;w=400"/>
+<img alt="Foto de Esteban Vallejos" class="w-full h-full object-cover opacity-0 transition-opacity duration-500" id="avatarImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/>
+<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slateCard to-slateBg opacity-0 transition-opacity duration-500 pointer-events-none" id="avatarPlaceholder">
+<i class="fa-solid fa-user-tie text-6xl text-gray-600"></i>
+</div>
 <label class="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-white text-xs no-print owner-only hidden" for="avatarUpload">
 <i class="fa-solid fa-camera text-xl text-accentCyan mb-1"></i>
 <span class="font-medium">Cambiar Foto</span>
@@ -555,6 +558,12 @@ Me especializo en el desarrollo moderno de software utilizando tecnologías como
 
         // --- Foto de perfil (se guarda reducida dentro de Firestore, sin usar Storage) ---
         const avatarImg = $('avatarImage'), avatarInput = $('avatarUpload'), toastEl = $('toast');
+        const avatarPh = $('avatarPlaceholder');
+        const setPlaceholder = (on) => avatarPh.classList.toggle('opacity-0', !on);
+        function showPhoto(dataUrl) {
+            avatarImg.onload = () => { avatarImg.classList.remove('opacity-0'); setPlaceholder(false); };
+            avatarImg.src = dataUrl;
+        }
         let toastTimer;
         function toast(msg, isError = false) {
             toastEl.textContent = msg;
@@ -594,7 +603,7 @@ Me especializo en el desarrollo moderno de software utilizando tecnologías como
             if (!file) return;
             try {
                 const dataUrl = await resizeImage(file);
-                avatarImg.src = dataUrl;
+                showPhoto(dataUrl);
                 if (!owner || !contentRef) { toast('Vista previa local: iniciá sesión para guardarla', true); return; }
                 toast('Guardando foto…');
                 await setDoc(contentRef, { foto: dataUrl, actualizado: new Date().toISOString() }, { merge: true });
@@ -607,6 +616,7 @@ Me especializo en el desarrollo moderno de software utilizando tecnologías como
         });
 
         // --- Firebase ---
+        if (!configured) setPlaceholder(true);
         if (configured) {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -618,9 +628,12 @@ Me especializo en el desarrollo moderno de software utilizando tecnologías como
                 if (snap.exists()) {
                     const d = snap.data();
                     applyTexts(d.textos || {});
-                    if (typeof d.foto === 'string' && d.foto.startsWith('data:image/')) avatarImg.src = d.foto;
+                    if (typeof d.foto === 'string' && d.foto.startsWith('data:image/')) showPhoto(d.foto);
+                    else setPlaceholder(true);
+                } else {
+                    setPlaceholder(true);
                 }
-            }).catch(err => console.warn('No se pudieron cargar los textos:', err));
+            }).catch(err => { console.warn('No se pudieron cargar los textos:', err); setPlaceholder(true); });
 
             onAuthStateChanged(auth, (user) => { owner = !!user; refreshUI(); });
         }
